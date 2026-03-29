@@ -426,8 +426,130 @@ body {
 }
 
 /* ============================================
-   STATUS BADGE STYLES
+   SHIFT SETTINGS BAR
    ============================================ */
+
+.shift-settings-bar {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    background: #f0f3ff;
+    border: 1.5px solid #d0d9ff;
+    border-radius: 8px;
+    padding: 12px 18px;
+    margin-bottom: 20px;
+}
+
+.shift-setting-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.shift-setting-item label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    white-space: nowrap;
+}
+
+.shift-setting-item input[type="time"] {
+    padding: 6px 10px;
+    border: 2px solid #c5ceff;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    background: white;
+    cursor: pointer;
+}
+
+.shift-setting-item input[type="time"]:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.grace-stepper {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border: 2px solid #c5ceff;
+    border-radius: 6px;
+    overflow: hidden;
+    background: white;
+}
+
+.grace-stepper button {
+    width: 30px;
+    height: 32px;
+    background: #667eea;
+    color: white;
+    border: none;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    line-height: 1;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.grace-stepper button:hover  { background: #5568d3; }
+.grace-stepper button:active { background: #4455bb; }
+
+.grace-stepper input[type="number"] {
+    width: 46px;
+    border: none;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: #333;
+    padding: 0 4px;
+    -moz-appearance: textfield;
+}
+
+.grace-stepper input[type="number"]::-webkit-inner-spin-button,
+.grace-stepper input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+}
+
+.grace-stepper input[type="number"]:focus {
+    outline: none;
+    background: #f5f5ff;
+}
+
+.grace-unit {
+    font-size: 12px;
+    font-weight: 600;
+    color: #888;
+    padding-right: 8px;
+}
+
+.shift-setting-hint {
+    margin-left: auto;
+    font-size: 13px;
+    color: #667eea;
+    font-weight: 500;
+    gap: 10px;
+}
+
+.grace-saved-badge {
+    background: #28a745;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+@media (max-width: 600px) {
+    .shift-settings-bar { flex-direction: column; align-items: flex-start; }
+    .shift-setting-hint { margin-left: 0; }
+}
+
+
 
 .status-badge {
     display: inline-block;
@@ -476,15 +598,7 @@ body {
     color: #555;
 }
 
-.grace-hint {
-    font-size: 12px;
-    color: #667eea;
-    background: #eef0ff;
-    padding: 6px 10px;
-    border-radius: 6px;
-    border: 1px dashed #aab4f5;
-    margin-top: 4px;
-}
+/* (grace-hint replaced by .shift-settings-bar) */
 
 /* ============================================
    SUMMARY CARD MINUTES / HRS-MIN DISPLAY
@@ -502,6 +616,19 @@ body {
     font-size: 15px;
     font-weight: 600;
     margin-top: 6px;
+}
+
+/* Late card variants */
+.summary-card.late-card {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+}
+
+.summary-card.late-card.late-card--dirty {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.summary-card.late-card.late-card--clean {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
 }
 
 .error-message {

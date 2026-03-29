@@ -20,14 +20,55 @@ let students = [];
 const DEFAULT_GRACE_PERIOD = 15; // minutes
 const DEFAULT_OFFICIAL_START = '08:00';
 
-/** Returns the current shift settings from the UI inputs */
+/** Returns the current shift settings — from localStorage, then UI, then hardcoded defaults */
 function getShiftSettings() {
-    const startTime = (document.getElementById('officialStartTime')?.value || DEFAULT_OFFICIAL_START).trim();
-    const gracePeriod = parseInt(document.getElementById('gracePeriodMinutes')?.value, 10);
+    const saved = JSON.parse(localStorage.getItem('dtrShiftSettings') || '{}');
+    const startTime   = document.getElementById('officialStartTime')?.value
+                     || saved.startTime
+                     || DEFAULT_OFFICIAL_START;
+    const rawGrace    = document.getElementById('gracePeriodMinutes')?.value;
+    const gracePeriod = rawGrace !== undefined && rawGrace !== ''
+                     ? parseInt(rawGrace, 10)
+                     : (saved.gracePeriod ?? DEFAULT_GRACE_PERIOD);
     return {
-        startTime: startTime || DEFAULT_OFFICIAL_START,
+        startTime:   startTime || DEFAULT_OFFICIAL_START,
         gracePeriod: isNaN(gracePeriod) ? DEFAULT_GRACE_PERIOD : gracePeriod
     };
+}
+
+/** Persist current shift settings to localStorage */
+function saveShiftSettings() {
+    const settings = getShiftSettings();
+    localStorage.setItem('dtrShiftSettings', JSON.stringify(settings));
+    updateGraceHint();
+
+    // Flash "✓ Saved" badge
+    const badge = document.getElementById('graceSettingSaved');
+    if (badge) {
+        badge.style.display = 'inline';
+        clearTimeout(badge._hideTimer);
+        badge._hideTimer = setTimeout(() => { badge.style.display = 'none'; }, 1500);
+    }
+}
+
+/** Increment/decrement grace period via the +/- stepper buttons */
+function adjustGrace(delta) {
+    const el = document.getElementById('gracePeriodMinutes');
+    if (!el) return;
+    const current = parseInt(el.value, 10) || 0;
+    el.value = Math.max(0, Math.min(60, current + delta));
+    saveShiftSettings();
+    updateGraceHint();
+}
+
+/** Load persisted shift settings into the UI inputs */
+function loadShiftSettings() {
+    const saved = JSON.parse(localStorage.getItem('dtrShiftSettings') || '{}');
+    const startEl  = document.getElementById('officialStartTime');
+    const graceEl  = document.getElementById('gracePeriodMinutes');
+    if (startEl && saved.startTime)   startEl.value = saved.startTime;
+    if (graceEl && saved.gracePeriod !== undefined) graceEl.value = saved.gracePeriod;
+    updateGraceHint();
 }
 
 /** Convert "HH:MM" to total minutes */
@@ -83,16 +124,6 @@ function applyGracePeriod(actualTimeIn, officialStart, gracePeriodMins) {
     }
 }
 
-/** Toggle the shift settings panel */
-function toggleShiftSettings() {
-    const panel  = document.getElementById('shiftSettingsPanel');
-    const toggle = document.getElementById('shiftSettingsToggle');
-    if (!panel) return;
-    const isHidden = panel.style.display === 'none';
-    panel.style.display = isHidden ? 'block' : 'none';
-    toggle.textContent  = isHidden ? '▲ Hide' : '▼ Show';
-}
-
 /** Live-update grace window hint and preview while user types */
 function updateGraceHint() {
     const { startTime, gracePeriod } = getShiftSettings();
@@ -103,8 +134,7 @@ function updateGraceHint() {
     if (hint) hint.innerHTML = `Grace window: <strong>${formatTime(startTime)}</strong> – <strong>${formatTime(graceEnd)}</strong>`;
 
     // Live preview on the form
-    const actualIn = document.getElementById('startingTime')?.value ||
-                     document.getElementById('morningIn')?.value;
+    const actualIn = document.getElementById('morningIn')?.value;
     const hasMorning    = !!document.getElementById('morningIn')?.value;
     const hasAfternoon  = !!document.getElementById('afternoonIn')?.value;
     const isHalfDayAft  = !hasMorning && hasAfternoon;
@@ -164,9 +194,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Live grace period hint updates
-    ['officialStartTime', 'gracePeriodMinutes', 'startingTime', 'morningIn', 'afternoonIn'].forEach(id => {
+    ['officialStartTime', 'gracePeriodMinutes', 'morningIn', 'afternoonIn'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', updateGraceHint);
+    });
+
+    // Auto-save shift settings whenever they change
+    ['officialStartTime', 'gracePeriodMinutes'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', saveShiftSettings);
     });
 });
 
@@ -208,6 +244,7 @@ function showDTRScreen() {
     loadUserInfo();
     loadRecords();
     setDefaultDate();
+    loadShiftSettings();
 }
 
 function showAdminDashboard() {
@@ -767,63 +804,78 @@ async function addEntry() {
     }
 
     const date         = document.getElementById('entryDate').value;
-    const startingTime = document.getElementById('startingTime').value;  // actual login time
-    let   morningIn    = document.getElementById('morningIn').value;
+    const morningIn    = document.getElementById('morningIn').value;   // raw — stored as-is
     const morningOut   = document.getElementById('morningOut').value;
-    let   afternoonIn  = document.getElementById('afternoonIn').value;
+    const afternoonIn  = document.getElementById('afternoonIn').value;
     const afternoonOut = document.getElementById('afternoonOut').value;
 
     const hasMorning   = !!(morningIn && morningOut);
     const hasAfternoon = !!(afternoonIn && afternoonOut);
-    const isHalfDayAft = !hasMorning && hasAfternoon;  // afternoon-only → half day
+    const isHalfDayAft = !hasMorning && hasAfternoon;
 
-    // Determine the actual reference time-in for grace period
-    // If "Starting Time" is filled, it overrides morningIn for grace calculations
-    const actualLoginTime = startingTime || morningIn;
-
-    let latenessMinutes = 0;
-    let morningStatus   = '';
+    let effectiveMorningIn = morningIn; // used ONLY for hour calculation
+    let latenessMinutes    = 0;
+    let morningStatus      = '';
 
     if (hasMorning) {
         const { startTime, gracePeriod } = getShiftSettings();
-        const result = applyGracePeriod(actualLoginTime || morningIn, startTime, gracePeriod);
+        const result = applyGracePeriod(morningIn, startTime, gracePeriod);
 
-        // Use the effective (normalized) time for hours calculation
-        morningIn       = result.effectiveTimeIn || morningIn;
-        latenessMinutes = result.latenessMinutes;
-        morningStatus   = result.status;
+        effectiveMorningIn = result.effectiveTimeIn || morningIn; // normalized for calc
+        latenessMinutes    = result.latenessMinutes;
+        morningStatus      = result.status;
     } else if (isHalfDayAft) {
-        // No grace period for afternoon-only half day
         morningStatus = 'Half Day';
     }
 
-    // Calculate hours using effective (possibly normalized) times
-    const morningHours   = calculateHours(morningIn, morningOut);
+    // Hours calculated using effective (normalized) time — accurate deduction
+    const morningHours   = calculateHours(effectiveMorningIn, morningOut);
     const afternoonHours = calculateHours(afternoonIn, afternoonOut);
     const dailyHours     = morningHours + afternoonHours;
 
     const entry = {
-        student_id:      currentUser.id,
-        date:            date,
-        morning_in:      morningIn   || null,
-        morning_out:     morningOut  || null,
-        afternoon_in:    afternoonIn  || null,
-        afternoon_out:   afternoonOut || null,
-        daily_hours:     dailyHours.toFixed(2),
+        student_id:       currentUser.id,
+        date:             date,
+        morning_in:       morningIn    || null,  // raw input — what the user actually typed
+        morning_out:      morningOut   || null,
+        afternoon_in:     afternoonIn  || null,
+        afternoon_out:    afternoonOut || null,
+        daily_hours:      dailyHours.toFixed(2),
         lateness_minutes: latenessMinutes,
-        morning_status:  morningStatus,
-        actual_login:    startingTime || null,
-        created_at:      new Date().toISOString()
+        morning_status:   morningStatus,
+        actual_login:     morningIn    || null,  // same as raw morning_in
+        created_at:       new Date().toISOString()
     };
 
     try {
         if (supabaseClient) {
-            // Only include columns that exist in the DB (lateness_minutes / morning_status
-            // are new; Supabase will silently ignore unknown keys — or add them via migration)
-            const { data, error } = await supabaseClient
+            // Base columns that always exist in the schema
+            const baseEntry = {
+                student_id:   entry.student_id,
+                date:         entry.date,
+                morning_in:   entry.morning_in,
+                morning_out:  entry.morning_out,
+                afternoon_in: entry.afternoon_in,
+                afternoon_out:entry.afternoon_out,
+                daily_hours:  entry.daily_hours,
+                created_at:   entry.created_at
+            };
+
+            // Try inserting the full payload (with new columns) first
+            let { data, error } = await supabaseClient
                 .from('time_records')
                 .insert([entry])
                 .select();
+
+            // If schema cache error (new columns missing), retry with base columns only
+            if (error && (error.code === 'PGRST204' || (error.message && error.message.includes('schema cache')))) {
+                console.warn('⚠️ New columns not found in schema — inserting with base columns only.');
+                console.warn('📋 Run the SQL migration in your Supabase SQL editor to add lateness_minutes, morning_status, actual_login columns.');
+                ({ data, error } = await supabaseClient
+                    .from('time_records')
+                    .insert([baseEntry])
+                    .select());
+            }
 
             if (error) {
                 if (error.message && error.message.includes('relation "public.time_records" does not exist')) {
@@ -902,7 +954,6 @@ async function loadRecords() {
 }
 
 function clearForm() {
-    document.getElementById('startingTime').value = '';
     document.getElementById('morningIn').value = '';
     document.getElementById('morningOut').value = '';
     document.getElementById('afternoonIn').value = '';
@@ -990,12 +1041,12 @@ async function deleteEntry(id) {
 function updateSummary() {
     const totalHours = records.reduce((sum, record) => sum + parseFloat(record.daily_hours || 0), 0);
     const totalMins  = Math.round(totalHours * 60);
-    
+
     const today = new Date();
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - today.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
-    
+
     const weeklyHours = records
         .filter(record => {
             const recordDate = new Date(record.date + 'T00:00:00');
@@ -1020,8 +1071,33 @@ function updateSummary() {
     const whm = document.getElementById('weeklyHrsMin');
     if (whm) whm.textContent = minutesToHrsMin(weeklyMins);
 
+    // Days worked
     const td = document.getElementById('totalDays');
     if (td) td.textContent = records.length;
+
+    // Total lateness
+    const lateRecords     = records.filter(r => parseInt(r.lateness_minutes) > 0);
+    const totalLateMins   = lateRecords.reduce((sum, r) => sum + (parseInt(r.lateness_minutes) || 0), 0);
+    const lateDaysCount   = lateRecords.length;
+
+    const tlm = document.getElementById('totalLateMinutes');
+    if (tlm) tlm.textContent = totalLateMins.toLocaleString();
+
+    const tll = document.getElementById('totalLateLabel');
+    if (tll) tll.textContent = totalLateMins === 1 ? 'minute late' : 'minutes late';
+
+    const tlhm = document.getElementById('totalLateHrsMin');
+    if (tlhm) tlhm.textContent = totalLateMins > 0 ? minutesToHrsMin(totalLateMins) : '—';
+
+    const tld = document.getElementById('totalLateDays');
+    if (tld) tld.textContent = `${lateDaysCount} late ${lateDaysCount === 1 ? 'day' : 'days'}`;
+
+    // Tint the late card red if there's any lateness, green if clean
+    const lateCard = document.querySelector('.late-card');
+    if (lateCard) {
+        lateCard.classList.toggle('late-card--dirty', totalLateMins > 0);
+        lateCard.classList.toggle('late-card--clean', totalLateMins === 0);
+    }
 }
 
 function printDTR() {

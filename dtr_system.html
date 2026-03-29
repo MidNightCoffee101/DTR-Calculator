@@ -76,31 +76,24 @@
                 <button class="logout-btn" onclick="handleLogout()">Logout</button>
             </div>
 
-            <!-- Shift Settings Section -->
-            <div class="time-entry-section">
-                <h2 class="section-title" style="cursor:pointer;" onclick="toggleShiftSettings()">
-                    ⚙️ Shift Settings <span id="shiftSettingsToggle" style="font-size:14px; font-weight:400; color:#667eea;">▼ Show</span>
-                </h2>
-                <div id="shiftSettingsPanel" style="display:none;">
-                    <p style="color:#666; font-size:13px; margin-bottom:12px;">
-                        Configure your official shift start time and grace period for lateness tracking.
-                    </p>
-                    <div class="entry-form" style="margin-bottom:0;">
-                        <div class="time-input-group">
-                            <label for="officialStartTime">Official Start Time:</label>
-                            <input type="time" id="officialStartTime" value="08:00">
-                        </div>
-                        <div class="time-input-group">
-                            <label for="gracePeriodMinutes">Grace Period (minutes):</label>
-                            <input type="number" id="gracePeriodMinutes" value="15" min="0" max="60"
-                                style="padding:8px; border:2px solid #e0e0e0; border-radius:5px; font-size:14px;">
-                        </div>
-                        <div class="time-input-group" style="justify-content:flex-end; align-self:flex-end;">
-                            <p class="grace-hint" id="graceHintText">
-                                Grace window: <strong>08:00</strong> – <strong>08:15</strong>
-                            </p>
-                        </div>
+            <!-- Shift Settings Bar -->
+            <div class="shift-settings-bar">
+                <div class="shift-setting-item">
+                    <label for="officialStartTime">⏰ Official Start</label>
+                    <input type="time" id="officialStartTime" value="08:00">
+                </div>
+                <div class="shift-setting-item">
+                    <label for="gracePeriodMinutes">⏳ Grace Period</label>
+                    <div class="grace-stepper">
+                        <button type="button" onclick="adjustGrace(-1)">−</button>
+                        <input type="number" id="gracePeriodMinutes" value="15" min="0" max="60">
+                        <button type="button" onclick="adjustGrace(1)">+</button>
+                        <span class="grace-unit">min</span>
                     </div>
+                </div>
+                <div class="shift-setting-item shift-setting-hint">
+                    <span id="graceHintText">Grace window: <strong>08:00</strong> – <strong>08:15</strong></span>
+                    <span id="graceSettingSaved" class="grace-saved-badge" style="display:none;">✓ Saved</span>
                 </div>
             </div>
 
@@ -114,10 +107,6 @@
                     <div class="time-input-group">
                         <label for="entryDate">Date:</label>
                         <input type="date" id="entryDate" required>
-                    </div>
-                    <div class="time-input-group">
-                        <label for="startingTime">Starting Time (Actual Login):</label>
-                        <input type="time" id="startingTime" placeholder="Actual login time">
                     </div>
                     <div class="time-input-group">
                         <label for="morningIn">Morning Time-In:</label>
@@ -184,6 +173,13 @@
                 <div class="summary-card">
                     <h3>Total Days Worked</h3>
                     <div class="value" id="totalDays">0</div>
+                </div>
+                <div class="summary-card late-card">
+                    <h3>Total Time Late</h3>
+                    <div class="value" id="totalLateMinutes">0</div>
+                    <div class="value-sub" id="totalLateLabel">minutes late</div>
+                    <div class="value-sub" id="totalLateHrsMin">0 hrs 0 mins</div>
+                    <div class="value-sub" id="totalLateDays">0 late days</div>
                 </div>
             </div>
 
