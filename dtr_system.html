@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Time Record - OJT/Internship</title>
+    <link rel="stylesheet" href="dtr_styles.css">
+</head>
+<body>
+    <!-- Student Login Screen -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <h1>📋 DAILY TIME RECORD</h1>
+            <p>OJT/Internship Time Tracking System</p>
+            
+            <div class="login-form">
+                <div class="login-form-group">
+                    <label for="studentId">Student/Employee ID:</label>
+                    <input type="text" id="studentId" placeholder="Enter your ID">
+                </div>
+                <div class="login-form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" placeholder="Enter your password">
+                </div>
+                <button class="login-btn" onclick="handleLogin()">Login</button>
+                <div id="loginError" class="error-message"></div>
+                <div id="loginSuccess" class="success-message"></div>
+            </div>
+            
+            <div class="register-link">
+                Need an account? <a href="#" onclick="showAdminLogin()">Login Admin</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Login Screen -->
+    <div id="adminLoginScreen" class="login-screen" style="display: none;">
+        <div class="login-container">
+            <h1>🔐 ADMIN PANEL</h1>
+            <p>Administrator Access</p>
+            
+            <div class="login-form">
+                <div class="login-form-group">
+                    <label for="adminUsername">Admin Username:</label>
+                    <input type="text" id="adminUsername" placeholder="Enter admin username">
+                </div>
+                <div class="login-form-group">
+                    <label for="adminPassword">Admin Password:</label>
+                    <input type="password" id="adminPassword" placeholder="Enter admin password">
+                </div>
+                <button class="login-btn" onclick="handleAdminLogin()">Login as Admin</button>
+                <div id="adminLoginError" class="error-message"></div>
+                <div id="adminLoginSuccess" class="success-message"></div>
+            </div>
+            
+            <div class="register-link">
+                <a href="#" onclick="showStudentLogin()">← Back to Student Login</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student DTR Screen -->
+    <div id="dtrScreen" class="dtr-screen">
+        <div class="container">
+            <div class="header">
+                <h1>📋 DAILY TIME RECORD</h1>
+                <p>OJT/Internship Time Tracking System</p>
+            </div>
+
+            <!-- User Info Bar with Logout -->
+            <div class="user-info-bar">
+                <div class="user-details">
+                    <strong id="displayName">Student</strong>
+                    <span>Dept: <span id="displayDepartment">-</span> | Company: <span id="displayCompany">-</span></span>
+                </div>
+                <button class="logout-btn" onclick="handleLogout()">Logout</button>
+            </div>
+
+            <!-- Shift Settings Section -->
+            <div class="time-entry-section">
+                <h2 class="section-title" style="cursor:pointer;" onclick="toggleShiftSettings()">
+                    ⚙️ Shift Settings <span id="shiftSettingsToggle" style="font-size:14px; font-weight:400; color:#667eea;">▼ Show</span>
+                </h2>
+                <div id="shiftSettingsPanel" style="display:none;">
+                    <p style="color:#666; font-size:13px; margin-bottom:12px;">
+                        Configure your official shift start time and grace period for lateness tracking.
+                    </p>
+                    <div class="entry-form" style="margin-bottom:0;">
+                        <div class="time-input-group">
+                            <label for="officialStartTime">Official Start Time:</label>
+                            <input type="time" id="officialStartTime" value="08:00">
+                        </div>
+                        <div class="time-input-group">
+                            <label for="gracePeriodMinutes">Grace Period (minutes):</label>
+                            <input type="number" id="gracePeriodMinutes" value="15" min="0" max="60"
+                                style="padding:8px; border:2px solid #e0e0e0; border-radius:5px; font-size:14px;">
+                        </div>
+                        <div class="time-input-group" style="justify-content:flex-end; align-self:flex-end;">
+                            <p class="grace-hint" id="graceHintText">
+                                Grace window: <strong>08:00</strong> – <strong>08:15</strong>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Time Entry Section -->
+            <div class="time-entry-section">
+                <h2 class="section-title">Add Daily Time Entry</h2>
+                <p style="color: #666; font-size: 14px; margin-bottom: 15px; padding: 0 20px;">
+                    💡 <em>Tip: You can log a half day by filling only Morning OR Afternoon session. Grace period applies only to the morning shift.</em>
+                </p>
+                <div class="entry-form">
+                    <div class="time-input-group">
+                        <label for="entryDate">Date:</label>
+                        <input type="date" id="entryDate" required>
+                    </div>
+                    <div class="time-input-group">
+                        <label for="startingTime">Starting Time (Actual Login):</label>
+                        <input type="time" id="startingTime" placeholder="Actual login time">
+                    </div>
+                    <div class="time-input-group">
+                        <label for="morningIn">Morning Time-In:</label>
+                        <input type="time" id="morningIn">
+                    </div>
+                    <div class="time-input-group">
+                        <label for="morningOut">Morning Time-Out:</label>
+                        <input type="time" id="morningOut">
+                    </div>
+                    <div class="time-input-group">
+                        <label for="afternoonIn">Afternoon Time-In:</label>
+                        <input type="time" id="afternoonIn">
+                    </div>  
+                    <div class="time-input-group">
+                        <label for="afternoonOut">Afternoon Time-Out:</label>
+                        <input type="time" id="afternoonOut">
+                    </div>
+                    <div id="gracePeriodPreview" class="grace-period-preview" style="display:none; grid-column: 1 / -1;"></div>
+                    <button class="add-entry-btn" onclick="addEntry()">➕ Add Entry</button>
+                    <div id="errorMessage" class="error-message"></div>
+                    <div id="successMessage" class="success-message"></div>
+                </div>
+            </div>
+
+            <!-- Records Table -->
+            <div class="time-entry-section">
+                <h2 class="section-title">My Time Records</h2>
+                <div id="loadingRecords" class="loading" style="display: none;">Loading your records...</div>
+                <table class="records-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Morning In</th>
+                            <th>Morning Out</th>
+                            <th>Afternoon In</th>
+                            <th>Afternoon Out</th>
+                            <th>Status</th>
+                            <th>Daily Hours</th>
+                            <th class="no-print">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsBody">
+                        <tr class="no-records">
+                            <td colspan="8">No records yet. Add your first time entry above.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Summary Section -->
+            <div class="summary-section">
+                <div class="summary-card">
+                    <h3>Total Hours This Week</h3>
+                    <div class="value" id="weeklyHours">0.00</div>
+                    <div class="value-sub" id="weeklyMinutes">0 min</div>
+                    <div class="value-sub" id="weeklyHrsMin">0 hrs 0 mins</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Total Accumulated Hours</h3>
+                    <div class="value" id="totalHours">0.00</div>
+                    <div class="value-sub" id="totalMinutes">0 min</div>
+                    <div class="value-sub" id="totalHrsMin">0 hrs 0 mins</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Total Days Worked</h3>
+                    <div class="value" id="totalDays">0</div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="action-btn print-btn" onclick="printDTR()">🖨️ Print DTR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard Screen -->
+    <div id="adminDashboard" class="dtr-screen" style="display: none;">
+        <div class="container">
+            <div class="header">
+                <h1>👨‍💼 ADMIN DASHBOARD</h1>
+                <p>Manage OJT/Internship Students</p>
+            </div>
+
+            <!-- Admin Info Bar -->
+            <div class="user-info-bar">
+                <div class="user-details">
+                    <strong id="adminDisplayName">Administrator</strong>
+                    <span>Student Account Management</span>
+                </div>
+                <button class="logout-btn" onclick="handleAdminLogout()">Logout</button>
+            </div>
+
+            <!-- Add Student Section -->
+            <div class="time-entry-section">
+                <h2 class="section-title">Add New Student Account</h2>
+                <div class="entry-form">
+                    <div class="time-input-group">
+                        <label for="newStudentId">Student ID:</label>
+                        <input type="text" id="newStudentId" placeholder="e.g., 2024-001">
+                    </div>
+                    <div class="time-input-group">
+                        <label for="newPassword">Password:</label>
+                        <input type="password" id="newPassword" placeholder="Set password">
+                    </div>
+                    <div class="time-input-group">
+                        <label for="newName">Full Name:</label>
+                        <input type="text" id="newName" placeholder="Enter full name">
+                    </div>
+                    <div class="time-input-group">
+                        <label for="newEmail">Email:</label>
+                        <input type="email" id="newEmail" placeholder="email@example.com">
+                    </div>
+                    <div class="time-input-group">
+                        <label for="newDepartment">Department:</label>
+                        <input type="text" id="newDepartment" placeholder="e.g., IT">
+                    </div>
+                    <div class="time-input-group">
+                        <label for="newCompany">Company:</label>
+                        <input type="text" id="newCompany" placeholder="Company name">
+                    </div>
+                    <div class="time-input-group">
+                        <label for="newSupervisor">Supervisor:</label>
+                        <input type="text" id="newSupervisor" placeholder="Supervisor name">
+                    </div>
+                    <button class="add-entry-btn" onclick="addStudent()" style="grid-column: 1 / -1;">➕ Add Student Account</button>
+                    <div id="adminError" class="error-message"></div>
+                    <div id="adminSuccess" class="success-message"></div>
+                </div>
+            </div>
+
+            <!-- Students List -->
+            <div class="time-entry-section">
+                <h2 class="section-title">Student Accounts</h2>
+                <div id="loadingStudents" class="loading" style="display: none;">Loading students...</div>
+                <table class="records-table">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Department</th>
+                            <th>Company</th>
+                            <th>Supervisor</th>
+                            <th class="no-print">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsBody">
+                        <tr class="no-records">
+                            <td colspan="7">No students found.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Student Modal -->
+    <div id="editModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h2>✏️ Edit Student Account</h2>
+            <div class="modal-form">
+                <input type="hidden" id="editStudentDbId">
+                <div class="form-group">
+                    <label for="editStudentId">Student ID:</label>
+                    <input type="text" id="editStudentId">
+                </div>
+                <div class="form-group">
+                    <label for="editPassword">Password (leave blank to keep current):</label>
+                    <input type="password" id="editPassword" placeholder="New password">
+                </div>
+                <div class="form-group">
+                    <label for="editName">Full Name:</label>
+                    <input type="text" id="editName">
+                </div>
+                <div class="form-group">
+                    <label for="editEmail">Email:</label>
+                    <input type="email" id="editEmail">
+                </div>
+                <div class="form-group">
+                    <label for="editDepartment">Department:</label>
+                    <input type="text" id="editDepartment">
+                </div>
+                <div class="form-group">
+                    <label for="editCompany">Company:</label>
+                    <input type="text" id="editCompany">
+                </div>
+                <div class="form-group">
+                    <label for="editSupervisor">Supervisor:</label>
+                    <input type="text" id="editSupervisor">
+                </div>
+                <div class="modal-buttons">
+                    <button class="action-btn print-btn" onclick="updateStudent()">💾 Save Changes</button>
+                    <button class="action-btn clear-btn" onclick="closeEditModal()">Cancel</button>
+                </div>
+                <div id="editError" class="error-message"></div>
+                <div id="editSuccess" class="success-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="dtr_script.js"></script>
+</body>
+</html>
