@@ -1,1 +1,0 @@
-dtrcalc.netlify.app
